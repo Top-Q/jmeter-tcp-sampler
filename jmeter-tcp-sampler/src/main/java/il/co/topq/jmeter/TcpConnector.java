@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public class TcpConnector {
@@ -27,7 +28,7 @@ public class TcpConnector {
 		this.delimiter = delimiter;
 	}
 
-	public List<String> executeRequest(String request, ResponseSeeker responseSeeker) throws Exception {
+	public List<String> executeRequest(String request, Predicate<List<String>> responseSeeker) throws Exception {
 		try (Socket clientSocket = new Socket(host, port);
 				DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
 				BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
@@ -44,7 +45,7 @@ public class TcpConnector {
 				inFromServer.read(buffer);
 				response.append(new String(buffer).replace("\r", "").replace("\n", ""));
 				response = handleResponse(response);
-				if (responseSeeker.isResponseFound(responseList)) {
+				if (responseSeeker.test(responseList)) {
 					break;
 				}
 
@@ -53,7 +54,7 @@ public class TcpConnector {
 		return responseList;
 	}
 
-	private StringBuilder handleResponse(StringBuilder response) {
+	private StringBuilder handleResponse(final StringBuilder response) {
 		String temp = null;
 		boolean first = false;
 		try (Scanner scanner = new Scanner(response.toString())) {
@@ -79,7 +80,7 @@ public class TcpConnector {
 		} catch (InterruptedException e) {
 		}
 	}
-	
+
 	public int getReadTimeout() {
 		return readTimeout;
 	}
@@ -103,7 +104,5 @@ public class TcpConnector {
 	public void setNumOfBytesInBuffer(int numOfBytesInBuffer) {
 		this.numOfBytesInBuffer = numOfBytesInBuffer;
 	}
-	
-	
 
 }

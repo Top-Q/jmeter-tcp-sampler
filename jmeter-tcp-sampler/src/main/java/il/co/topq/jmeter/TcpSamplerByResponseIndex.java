@@ -51,29 +51,18 @@ public class TcpSamplerByResponseIndex extends AbstractJavaSamplerClient {
 		setParameters(context);
 		final TcpConnector connector = new TcpConnector(host, port, delimiter);
 		connector.setReadTimeout(readTimeout);
-		List<String> responseList = null;
+		List<String> responses = null;
 		result.sampleStart();
 		try {
-			responseList = connector.executeRequest(request, new ResponseSeeker() {
-
-				@Override
-				public boolean isResponseFound(final List<String> responseList) {
-					if (responseList.size() >= indexOfRequriedResponse) {
-						return true;
-					}
-					return false;
-				}
-
-			});
-
+			responses = connector.executeRequest(request, (List<String> responseList) -> responseList.size() >= indexOfRequriedResponse);
 			result.setSuccessful(true);
 			result.setResponseCodeOK();
-			result.setResponseData(responseList.get(indexOfRequriedResponse - 1).getBytes());
-			result.setResponseMessage("Recieved " + responseList.size() + "# responses");
+			result.setResponseData(responses.get(indexOfRequriedResponse - 1).getBytes());
+			result.setResponseMessage("Recieved " + responses.size() + "# responses");
 		} catch (Exception e) {
 			result.setResponseCode("500");
 			result.setSuccessful(false);
-			result.setResponseData(responseList.toString().getBytes());
+			result.setResponseData(responses.toString().getBytes());
 			result.setResponseMessage("Failed due to " + e.getMessage());
 		}
 
