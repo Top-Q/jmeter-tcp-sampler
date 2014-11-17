@@ -1,7 +1,5 @@
 package il.co.topq.jmeter;
 
-import java.util.List;
-
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.protocol.java.sampler.AbstractJavaSamplerClient;
 import org.apache.jmeter.protocol.java.sampler.JavaSamplerContext;
@@ -51,24 +49,25 @@ public class TcpSamplerByResponseIndex extends AbstractJavaSamplerClient {
 		setParameters(context);
 		final TcpConnector connector = new TcpConnector(host, port, delimiter);
 		connector.setReadTimeout(readTimeout);
-		List<String> responses = null;
 		result.sampleStart();
 		try {
-			responses = connector.executeRequest(request, (List<String> responseList) -> responseList.size() >= indexOfRequriedResponse);
+			final String foundResponse = connector.executeRequest(request, (Integer index, String response) -> index == indexOfRequriedResponse);
 			result.setSuccessful(true);
 			result.setResponseCodeOK();
-			result.setResponseData(responses.get(indexOfRequriedResponse - 1).getBytes());
-			result.setResponseMessage("Recieved " + responses.size() + "# responses");
-		} catch (Exception e) {
+			result.setResponseData(foundResponse.getBytes());
+			result.setResponseMessage("Recieved " + connector.getResponseList().size() + "# responses");
+		} catch (TcpConnectorException e) {
 			result.setResponseCode("500");
 			result.setSuccessful(false);
-			result.setResponseData(responses != null ? responses.toString().getBytes() : "No data recieved".getBytes());
+			result.setResponseData(e.getResponses() != null ? e.getResponses().toString().getBytes()
+					: "No data recieved".getBytes());
 			result.setResponseMessage("Failed due to " + e.getMessage());
-		}
+		} 
 
 		result.sampleEnd();
 		return result;
 
 	}
+
 
 }

@@ -1,8 +1,5 @@
 package il.co.topq.jmeter;
 
-import java.util.List;
-import java.util.regex.Pattern;
-
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.protocol.java.sampler.AbstractJavaSamplerClient;
 import org.apache.jmeter.protocol.java.sampler.JavaSamplerContext;
@@ -23,7 +20,6 @@ public class TcpSamplerByRegex extends AbstractJavaSamplerClient {
 	private int readTimeout = 30000;
 	private String request;
 	private String regex;
-	private String foundResponse;
 
 	// set up default arguments for the JMeter GUI
 	@Override
@@ -53,35 +49,24 @@ public class TcpSamplerByRegex extends AbstractJavaSamplerClient {
 		setParameters(context);
 		final TcpConnector connector = new TcpConnector(host, port, delimiter);
 		connector.setReadTimeout(readTimeout);
-		List<String> responses = null;
 		result.sampleStart();
 		try {
-			responses = connector.executeRequest(request, (List<String> responseList) -> isResponseFound(responseList));
+			final String foundResponse = connector.executeRequest(request,
+					(Integer index, String response) -> response.matches("(.*)" + regex + "(.*)"));
 			result.setSuccessful(true);
 			result.setResponseCodeOK();
 			result.setResponseData(foundResponse.getBytes());
 			result.setResponseMessage("Found response that matches the given regex");
-		} catch (Exception e) {
+		} catch (TcpConnectorException e) {
 			result.setResponseCode("500");
 			result.setSuccessful(false);
-			result.setResponseData(responses != null ? responses.toString().getBytes() : "No data recieved".getBytes());
+			result.setResponseData(e.getResponses() != null ? e.getResponses().toString().getBytes()
+					: "No data recieved".getBytes());
 			result.setResponseMessage("Failed due to " + e.getMessage());
 		}
 
 		result.sampleEnd();
 		return result;
-
 	}
-
-	private boolean isResponseFound(List<String> responseList) {
-		for (String response : responseList) {
-			if (response.matches("(.*)"+regex+"(.*)")) {
-				foundResponse = response;
-				return true;
-			}
-		}
-		return false;
-	}
-	
 
 }
